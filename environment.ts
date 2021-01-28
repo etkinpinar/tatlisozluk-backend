@@ -25,8 +25,8 @@ export class Environment {
     this._args = {
       accessTokenSecret: process.env.ACCESS_TOKEN_SECRET,
       responseEncryptionSecret: process.env.RESPONSE_ENCRYPTION_SECRET,
-      postgreSqlConnectionLimit: process.env.POSTGRESQL_CONNECTION_LIMIT,
-      postgreSqlUri: process.env.DATABASE_URL,
+      mongoDbConnectionLimit: process.env.MONGODB_CONNECTION_LIMIT,
+      mongoDbUri: process.env.DATABASE_URL,
       accessTokenExpire: process.env.ACCESS_TOKEN_EXPIRE,
       refreshTokenExpire: process.env.REFRESH_TOKEN_EXPIRE,
       refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,

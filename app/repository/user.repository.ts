@@ -2,29 +2,42 @@
  * @description holds user repository
  */
 
+import { UserDataModel } from '../data/user.data';
 import { HttpError } from '../interface/http-error.interface';
 import {
   ResponseCode,
-  PostgreSqlProvider,
   User,
   UserRole,
 } from '@open-template-hub/common';
 
 export class UserRepository {
-  constructor(private readonly provider: PostgreSqlProvider) {}
+  private dataModel: any = null;
+
+  /**
+   * initializes repository
+   * @param connection db connection
+   */
+  initialize = async (connection: any) => {
+    this.dataModel = await new UserDataModel().getDataModel(connection);
+    return this;
+  };
+
 
   /**
    * creates user
    * @param user user
+   * @returns user
    */
-  insertUser = async (user: User) => {
+  createUser = async (user: User) => {
     try {
-      await this.provider.query(
-        'INSERT INTO users(username, password, email, role) VALUES($1, $2, $3, $4)',
-        [user.username, user.password, user.email, UserRole.DEFAULT]
-      );
+      return await this.dataModel.create({
+        username: user.username,
+        email: user.email,
+        password: user.password,
+        userrole: UserRole.DEFAULT,
+      });
     } catch (error) {
-      console.error(error);
+      console.error('> createUser error: ', error);
       throw error;
     }
   };
@@ -32,21 +45,22 @@ export class UserRepository {
   /**
    * gets user by username or email
    * @param username username
+   * @returns user
    */
   findUserByUsernameOrEmail = async (username: string) => {
     let res;
     try {
-      res = await this.provider.query(
-        'SELECT username, password, verified, role FROM users WHERE username = $1 or email = $1',
-        [username]
+      res = await this.dataModel.findOne({ $or: [{ username: username }, { email: username }]},
+          { username: 1, password: 1, verified: 1, userrole: 1 }
       );
       this.shouldHaveSingleRow(res);
     } catch (error) {
-      console.error(error);
+      console.error('> getUserByUsername error: ', error);
       throw error;
     }
-    return res.rows[0];
+    return res;
   };
+
 
   /**
    * gets email by username
@@ -55,16 +69,13 @@ export class UserRepository {
   findEmailByUsername = async (username: string) => {
     let res;
     try {
-      res = await this.provider.query(
-        'SELECT username, email FROM users WHERE username = $1',
-        [username]
-      );
+      res = await this.dataModel.findOne({ username }, {username: 1, email: 1});
       this.shouldHaveSingleRow(res);
     } catch (error) {
       console.error(error);
       throw error;
     }
-    return res.rows[0];
+    return res;
   };
 
   /**
@@ -74,27 +85,14 @@ export class UserRepository {
   findEmailAndPasswordByUsername = async (username: string) => {
     let res;
     try {
-      res = await this.provider.query(
-        'SELECT username, email, password FROM users WHERE username = $1',
-        [username]
-      );
+      res = await this.dataModel.findOne({ username }, { username: 1, password: 1, email: 1 });
+      this.shouldHaveSingleRow(res);
     } catch (error) {
       console.error(error);
       throw error;
     }
 
-    if (res.rows.length === 0) {
-      let e = new Error('bad credentials') as HttpError;
-      e.responseCode = ResponseCode.FORBIDDEN;
-      throw e;
-    } else if (res.rows.length > 1) {
-      console.error('ambiguous token');
-      let e = new Error('internal server error') as HttpError;
-      e.responseCode = ResponseCode.INTERNAL_SERVER_ERROR;
-      throw e;
-    }
-
-    return res.rows[0];
+    return res;
   };
 
   /**
@@ -103,10 +101,9 @@ export class UserRepository {
    */
   verifyUser = async (username: string) => {
     try {
-      await this.provider.query(
-        'UPDATE users SET verified = true WHERE username = $1',
-        [username]
-      );
+      await this.dataModel.update({ username }, {
+        $set: { verified: true }
+      });
     } catch (error) {
       console.error(error);
       throw error;
@@ -119,10 +116,9 @@ export class UserRepository {
    */
   updateByUsername = async (user: User) => {
     try {
-      await this.provider.query(
-        'UPDATE users SET password = $1 WHERE username = $2',
-        [user.password, user.username]
-      );
+      await this.dataModel.update({ username: user.username }, {
+        $set: { password: user.password}
+      });
     } catch (error) {
       console.error(error);
       throw error;
@@ -133,16 +129,20 @@ export class UserRepository {
    * checks response has single row
    * @param res res
    */
+  // TODO Check if there is one user with the given response
   shouldHaveSingleRow = (res: any) => {
-    if (res.rows.length === 0) {
+    if (res === null || res === undefined) {
       let e = new Error('user not found') as HttpError;
       e.responseCode = ResponseCode.BAD_REQUEST;
       throw e;
-    } else if (res.rows.length > 1) {
+    }
+    /*
+      else if (res.rows.length > 1) {
       console.error('ambiguous token');
       let e = new Error('internal server error') as HttpError;
       e.responseCode = ResponseCode.INTERNAL_SERVER_ERROR;
       throw e;
     }
+    */
   };
 }

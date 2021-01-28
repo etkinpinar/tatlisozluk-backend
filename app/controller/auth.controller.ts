@@ -7,7 +7,7 @@ import { HttpError } from '../interface/http-error.interface';
 import {
   TokenUtil,
   ResponseCode,
-  PostgreSqlProvider,
+  MongoDbProvider,
   User,
   MailUtil,
 } from '@open-template-hub/common';
@@ -27,7 +27,7 @@ export class AuthController {
    * @param db database
    * @param user user
    */
-  signup = async (db: PostgreSqlProvider, user: User) => {
+  signup = async (db: MongoDbProvider, user: User) => {
     if (!user.password || !user.username || !user.email) {
       let e = new Error('username, password and email required') as HttpError;
       e.responseCode = ResponseCode.BAD_REQUEST;
@@ -36,9 +36,11 @@ export class AuthController {
     }
 
     const hashedPassword = await bcrypt.hash(user.password, 10);
-    const userRepository = new UserRepository(db);
+    const userRepository = await new UserRepository().initialize(
+        db.getConnection()
+    );
 
-    await userRepository.insertUser({
+    await userRepository.createUser({
       username: user.username,
       password: hashedPassword,
       email: user.email,
@@ -63,7 +65,7 @@ export class AuthController {
    * @param db database
    * @param user user
    */
-  login = async (db: PostgreSqlProvider, user: User) => {
+  login = async (db: MongoDbProvider, user: User) => {
     if (!(user.username || user.email)) {
       let e = new Error('username or email required') as HttpError;
       e.responseCode = ResponseCode.BAD_REQUEST;
@@ -76,7 +78,9 @@ export class AuthController {
       throw e;
     }
 
-    const userRepository = new UserRepository(db);
+    const userRepository = await new UserRepository().initialize(
+        db.getConnection()
+    );
 
     const username = user.username || user.email;
 
@@ -94,7 +98,9 @@ export class AuthController {
       throw e;
     }
 
-    const tokenRepository = new TokenRepository(db);
+    const tokenRepository = await new TokenRepository().initialize(
+        db.getConnection()
+    );
     return await tokenRepository.generateTokens(dbUser);
   };
 
@@ -103,8 +109,10 @@ export class AuthController {
    * @param db database
    * @param token token
    */
-  logout = async (db: PostgreSqlProvider, token: string) => {
-    const tokenRepository = new TokenRepository(db);
+  logout = async (db: MongoDbProvider, token: string) => {
+    const tokenRepository = await new TokenRepository().initialize(
+        db.getConnection()
+    );
     await tokenRepository.deleteToken(token);
   };
 
@@ -113,8 +121,10 @@ export class AuthController {
    * @param db database
    * @param token token
    */
-  token = async (db: PostgreSqlProvider, token: string) => {
-    const tokenRepository = new TokenRepository(db);
+  token = async (db: MongoDbProvider, token: string) => {
+    const tokenRepository = await new TokenRepository().initialize(
+        db.getConnection()
+    );
     await tokenRepository.findToken(token);
     const user = this.tokenUtil.verifyRefreshToken(token) as User;
     return this.tokenUtil.generateAccessToken(user);
@@ -125,10 +135,12 @@ export class AuthController {
    * @param db database
    * @param token token
    */
-  verify = async (db: PostgreSqlProvider, token: string) => {
+  verify = async (db: MongoDbProvider, token: string) => {
     const user = this.tokenUtil.verifyVerificationToken(token) as User;
 
-    const userRepository = new UserRepository(db);
+    const userRepository = await new UserRepository().initialize(
+        db.getConnection()
+    );
     await userRepository.verifyUser(user.username);
   };
 
@@ -137,8 +149,10 @@ export class AuthController {
    * @param db database
    * @param username username
    */
-  forgetPassword = async (db: PostgreSqlProvider, username: string) => {
-    const userRepository = new UserRepository(db);
+  forgetPassword = async (db: MongoDbProvider, username: string) => {
+    const userRepository = await new UserRepository().initialize(
+        db.getConnection()
+    );
     const user = await userRepository.findEmailAndPasswordByUsername(username);
     const passwordResetToken = this.tokenUtil.generatePasswordResetToken(user);
 
@@ -152,7 +166,7 @@ export class AuthController {
    * @param user user
    * @param token token
    */
-  resetPassword = async (db: PostgreSqlProvider, user: User, token: string) => {
+  resetPassword = async (db: MongoDbProvider, user: User, token: string) => {
     if (!user.password || !user.username) {
       let e = new Error('username and password required') as HttpError;
       e.responseCode = ResponseCode.BAD_REQUEST;
@@ -161,7 +175,9 @@ export class AuthController {
 
     user.password = await bcrypt.hash(user.password, 10);
 
-    const userRepository = new UserRepository(db);
+    const userRepository = await new UserRepository().initialize(
+        db.getConnection()
+    );
     const dbUser = await userRepository.findEmailAndPasswordByUsername(
       user.username
     );

@@ -2,6 +2,7 @@
  * @description holds token repository
  */
 
+import { TokenDataModel } from '../data/token.data';
 import { HttpError } from '../interface/http-error.interface';
 import {
   ResponseCode,
@@ -13,7 +14,16 @@ import { AuthToken } from '../interface/auth-token.interface';
 import { Environment } from '../../environment';
 
 export class TokenRepository {
-  constructor(private readonly provider: PostgreSqlProvider) {}
+  private tokenModel: any = null;
+
+  /**
+   * initializes repository
+   * @param connection db connection
+   */
+  initialize = async (connection: any) => {
+    this.tokenModel = await new TokenDataModel().getDataModel(connection);
+    return this;
+  };
 
   /**
    * generates access and refresh tokens
@@ -25,7 +35,7 @@ export class TokenRepository {
     const accessToken = tokenUtil.generateAccessToken(user);
     const refreshToken = tokenUtil.generateRefreshToken(user);
 
-    await this.insertToken({
+    await this.createToken({
       token: refreshToken.token,
       expireAt: new Date(refreshToken.exp * 1000),
     });
@@ -40,36 +50,31 @@ export class TokenRepository {
    * saves token
    * @param token token
    */
-  insertToken = async (token: any) => {
-    let res;
+
+  createToken = async (token: any) => {
     try {
-      res = await this.provider.query(
-        'INSERT INTO tokens(token, expire_date) VALUES($1, $2)',
-        [token.token, token.expireAt]
-      );
+      return await this.tokenModel.create({
+        text: token.token,
+        expireDate: token.expireAt
+      });
     } catch (error) {
-      console.error(error);
+      console.error('> createToken error: ', error);
       throw error;
     }
-    return res.rows[0];
   };
+
 
   /**
    * deletes token
    * @param token token
    */
   deleteToken = async (token: any) => {
-    let res;
     try {
-      res = await this.provider.query(
-        'DELETE FROM tokens WHERE token LIKE $1',
-        [token]
-      );
+      return await this.tokenModel.findOneAndDelete({ token });
     } catch (error) {
-      console.error(error);
+      console.error('> deleteToken error: ', error);
       throw error;
     }
-    return res.rows[0];
   };
 
   /**
@@ -79,16 +84,17 @@ export class TokenRepository {
   findToken = async (token: any) => {
     let res;
     try {
-      res = await this.provider.query(
-        'SELECT token FROM tokens WHERE token = $1',
-        [token]
-      );
+      res = await this.tokenModel.findOne({ token });
     } catch (error) {
       console.error(error);
       throw error;
     }
 
-    if (res.rows.length === 0) {
+    /**
+     * TODO Check if there is no token in db with the given token
+     * TODO Also check if there is more than 1 token
+     * */
+    if (res.rows.length === 0) { //res === null || res === undefined
       let e = new Error('invalid token') as HttpError;
       e.responseCode = ResponseCode.UNAUTHORIZED;
       throw e;
@@ -99,7 +105,7 @@ export class TokenRepository {
       throw e;
     }
 
-    return res.rows[0];
+    return res;
   };
 
   /**
@@ -108,14 +114,11 @@ export class TokenRepository {
   deleteExpiredTokens = async () => {
     let res;
     try {
-      res = await this.provider.query(
-        "DELETE FROM tokens WHERE expire_date < (now() at time zone 'utc')",
-        []
+      return await this.tokenModel.remove({ expireDate : {"$lt" : new Date() } }
       );
     } catch (error) {
       console.error(error);
       throw error;
     }
-    return res.rows[0];
   };
 }

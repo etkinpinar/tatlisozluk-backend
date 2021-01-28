@@ -13,6 +13,7 @@ import {
   BuilderUtil,
   ResponseCode,
   PostgreSqlProvider,
+  MongoDbProvider,
   User,
   EncryptionUtil,
   ParserUtil,
@@ -403,7 +404,9 @@ export class SocialLoginController {
       userData.external_user_id
     );
 
-    const tokenRepository = new TokenRepository(db);
+    const tokenRepository = await new TokenRepository().initialize(
+        db.getConnection()
+    );
 
     if (socialLoginUser) {
       // login user, generate token
@@ -437,11 +440,13 @@ export class SocialLoginController {
    * @param db database
    * @param user user
    */
-  signup = async (db: PostgreSqlProvider, user: User) => {
+  signup = async (db: MongoDbProvider, user: User) => {
     const hashedPassword = await bcrypt.hash(user.password, 10);
 
-    const userRepository = new UserRepository(db);
-    await userRepository.insertUser({
+    const userRepository = await new UserRepository().initialize(
+        db.getConnection()
+    );
+    await userRepository.createUser({
       username: user.username,
       password: hashedPassword,
     } as User);

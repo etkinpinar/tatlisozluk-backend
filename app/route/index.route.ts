@@ -18,7 +18,7 @@ import {
 import { router as infoRouter } from './info.route';
 import {
   ErrorHandlerUtil,
-  PostgreSqlProvider,
+  MongoDbProvider,
   EncryptionUtil,
   DebugLogUtil,
   context,
@@ -37,7 +37,7 @@ const subRoutes = {
 
 export module Routes {
   var environment: Environment;
-  var postgresql_provider: PostgreSqlProvider;
+  var mongodb_provider: MongoDbProvider;
   const errorHandlerUtil = new ErrorHandlerUtil();
   const debugLogUtil = new DebugLogUtil();
 
@@ -58,13 +58,12 @@ export module Routes {
     const preloadUtil = new PreloadUtil();
     environment = new Environment();
 
-    postgresql_provider = new PostgreSqlProvider(
-      environment.args(),
-      'AuthServer'
+    mongodb_provider = new MongoDbProvider(
+      environment.args()
     );
 
     preloadUtil
-      .preload(undefined, postgresql_provider)
+      .preload(mongodb_provider, undefined)
       .then(() => console.log('DB preloads are completed.'));
 
     publicRoutes = [
@@ -107,8 +106,9 @@ export module Routes {
           environment.args(),
           publicRoutes,
           adminRoutes,
-          undefined,
-          postgresql_provider
+          mongodb_provider,
+          undefined
+
         );
 
         next();

@@ -37,7 +37,7 @@ router.post(subRoutes.signup, async (req: Request, res: Response) => {
   // sign up
   const authController = new AuthController();
   const context = res.locals.ctx as Context;
-  const response = await authController.signup(context.postgresql_provider, {
+  const response = await authController.signup(context.mongodb_provider, {
     username: req.body.username,
     password: req.body.password,
     email: req.body.email,
@@ -49,7 +49,7 @@ router.post(subRoutes.login, async (req: Request, res: Response) => {
   // login
   const authController = new AuthController();
   const context = res.locals.ctx as Context;
-  const response = await authController.login(context.postgresql_provider, {
+  const response = await authController.login(context.mongodb_provider, {
     username: req.body.username,
     password: req.body.password,
     email: req.body.email,
@@ -64,7 +64,7 @@ router.post(subRoutes.logout, async (req: Request, res: Response) => {
   //  logout
   const authController = new AuthController();
   const context = res.locals.ctx as Context;
-  await authController.logout(context.postgresql_provider, req.body.token);
+  await authController.logout(context.mongodb_provider, req.body.token);
   res.status(ResponseCode.NO_CONTENT).json({});
 });
 
@@ -73,7 +73,7 @@ router.post(subRoutes.token, async (req: Request, res: Response) => {
   const authController = new AuthController();
   const context = res.locals.ctx as Context;
   const accessToken = await authController.token(
-    context.postgresql_provider,
+    context.mongodb_provider,
     req.body.token
   );
   res
@@ -86,7 +86,7 @@ router.get(subRoutes.verify, async (req: Request, res: Response) => {
   const authController = new AuthController();
   const context = res.locals.ctx as Context;
   await authController.verify(
-    context.postgresql_provider,
+    context.mongodb_provider,
     req.query.token as string
   );
   res.status(ResponseCode.OK).json({});
@@ -97,7 +97,7 @@ router.post(subRoutes.forgetPassword, async (req: Request, res: Response) => {
   const authController = new AuthController();
   const context = res.locals.ctx as Context;
   await authController.forgetPassword(
-    context.postgresql_provider,
+    context.mongodb_provider,
     req.body.username
   );
   res.status(ResponseCode.OK).json({});
@@ -110,7 +110,7 @@ router.get(
     const authController = new AuthController();
     const context = res.locals.ctx as Context;
     const resetPasswordToken = await authController.forgetPassword(
-      context.postgresql_provider,
+      context.mongodb_provider,
       req.query.username as string
     );
     res.status(ResponseCode.OK).json({ resetPasswordToken });
@@ -122,7 +122,7 @@ router.post(subRoutes.resetPassword, async (req: Request, res: Response) => {
   const authController = new AuthController();
   const context = res.locals.ctx as Context;
   await authController.resetPassword(
-    context.postgresql_provider,
+    context.mongodb_provider,
     {
       username: req.body.username,
       password: req.body.password,
