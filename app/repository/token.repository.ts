@@ -54,7 +54,7 @@ export class TokenRepository {
   createToken = async (token: any) => {
     try {
       return await this.tokenModel.create({
-        text: token.token,
+        token: token.token,
         expireDate: token.expireAt
       });
     } catch (error) {
@@ -94,14 +94,9 @@ export class TokenRepository {
      * TODO Check if there is no token in db with the given token
      * TODO Also check if there is more than 1 token
      * */
-    if (res.rows.length === 0) { //res === null || res === undefined
+    if (res === null || res === undefined) {
       let e = new Error('invalid token') as HttpError;
       e.responseCode = ResponseCode.UNAUTHORIZED;
-      throw e;
-    } else if (res.rows.length > 1) {
-      console.error('ambiguous token');
-      let e = new Error('internal server error') as HttpError;
-      e.responseCode = ResponseCode.INTERNAL_SERVER_ERROR;
       throw e;
     }
 

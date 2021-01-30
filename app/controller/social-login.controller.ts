@@ -404,9 +404,9 @@ export class SocialLoginController {
       userData.external_user_id
     );
 
-    const tokenRepository = await new TokenRepository().initialize(
+    const tokenRepository = await new TokenRepository()/*.initialize(
         db.getConnection()
-    );
+    )*/;
 
     if (socialLoginUser) {
       // login user, generate token
@@ -422,7 +422,7 @@ export class SocialLoginController {
         email: userData.external_user_email,
       };
 
-      await this.signup(db, socialLoginUser);
+      //await this.signup(db, socialLoginUser);
       await socialLoginRepository.insertSocialLoginMapping(
         key,
         userData.external_user_id,
@@ -443,9 +443,9 @@ export class SocialLoginController {
   signup = async (db: MongoDbProvider, user: User) => {
     const hashedPassword = await bcrypt.hash(user.password, 10);
 
-    const userRepository = await new UserRepository().initialize(
+    const userRepository = await new UserRepository()/*.initialize(
         db.getConnection()
-    );
+    )*/;
     await userRepository.createUser({
       username: user.username,
       password: hashedPassword,

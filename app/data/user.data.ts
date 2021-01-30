@@ -4,9 +4,9 @@
 
 import mongoose from 'mongoose';
 const { isEmail } = require('validator');
-
 export class UserDataModel {
-  private readonly collectionName: string = 'user';
+
+  private readonly collectionName: string = 'users';
   private dataSchema: mongoose.Schema;
 
   constructor() {

@@ -3,7 +3,7 @@
  */
 
 import { UserRepository } from '../repository/user.repository';
-import { PostgreSqlProvider, TokenUtil, User } from '@open-template-hub/common';
+import { MongoDbProvider, TokenUtil, User } from '@open-template-hub/common';
 import { Environment } from '../../environment';
 
 export class InfoController {
@@ -12,12 +12,14 @@ export class InfoController {
    * @param db database
    * @param token token
    */
-  me = async (db: PostgreSqlProvider, token: string) => {
+  me = async (db: MongoDbProvider, token: string) => {
     const environment = new Environment();
     const tokenUtil = new TokenUtil(environment.args());
     const user = tokenUtil.verifyAccessToken(token) as User;
 
-    const userRepository = new UserRepository(db);
+    const userRepository = await new UserRepository().initialize(
+        db.getConnection()
+    );
     return await userRepository.findEmailByUsername(user.username);
   };
 }

@@ -5,7 +5,7 @@
 import mongoose from 'mongoose';
 
 export class TokenDataModel {
-  private readonly collectionName: string = 'token';
+  private readonly collectionName: string = 'tokens';
   private dataSchema: mongoose.Schema;
 
   constructor() {
